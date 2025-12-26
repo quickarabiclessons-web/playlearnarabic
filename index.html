@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arabic Master: Refined Edition</title>
+    <style>
+        :root { 
+            --red: #ff5f6d; --blue: #5d9cec; --green: #2ecc71; --purple: #a29bfe; --gold: #f39c12;
+            --bg: #f0f2f5; --card-bg: #ffffff; --text: #333333; --nav: #333333;
+        }
+        body.dark { --bg: #121212; --card-bg: #1e1e1e; --text: #e0e0e0; --nav: #000000; }
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; margin: 0; padding: 0; background-color: var(--bg); color: var(--text); transition: 0.3s; display: flex; flex-direction: column; align-items: center; }
+        
+        .progress-bar { width: 100%; background: var(--card-bg); padding: 15px 0; display: flex; justify-content: center; gap: 40px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .score-num { font-size: 28px; font-weight: bold; }
+        
+        .nav-bar { width: 100%; background: var(--nav); padding: 15px 0; display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; position: sticky; top: 0; z-index: 100; }
+        .nav-btn { padding: 8px 12px; color: white; background: #444; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 13px; }
+        .nav-btn.active { background: var(--blue); }
+        .nav-btn.lesson { background: var(--gold); }
+
+        .app-card { background: var(--card-bg); padding: 30px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); text-align: center; width: 90%; max-width: 800px; margin: 20px 0; }
+        .dropdown-row { display: flex; gap: 10px; margin-bottom: 30px; justify-content: center; flex-wrap: wrap; }
+        select { padding: 12px; font-size: 16px; border-radius: 12px; border: 2px solid #ccc; background: var(--card-bg); color: var(--text); font-weight: bold; cursor: pointer; }
+        
+        .info-box { background: rgba(93, 156, 236, 0.1); border-left: 5px solid var(--blue); padding: 12px; margin-bottom: 25px; text-align: center; border-radius: 8px; font-size: 15px; font-weight: 500; }
+        .quiz-prompt { background: rgba(243, 156, 18, 0.1); padding: 15px; border-radius: 10px; border: 2px dashed #f39c12; margin-bottom: 20px; font-size: 20px; display: none; font-weight: bold; }
+        
+        .result-container { font-size: 60px; font-weight: bold; direction: rtl; min-height: 80px; margin: 20px 0; }
+        .translit-container { font-size: 22px; font-family: monospace; margin-bottom: 10px; font-weight: bold;}
+        .translation-container { font-size: 28px; font-weight: bold; min-height: 40px; }
+        
+        .color-gold { color: var(--gold); } .color-blue { color: var(--blue); } .color-red { color: var(--red); } .color-purple { color: var(--purple); }
+        .hidden { display: none; }
+        #toast { visibility: hidden; min-width: 200px; background-color: #333; color: #fff; text-align: center; border-radius: 5px; padding: 16px; position: fixed; z-index: 1000; bottom: 30px; left: 50%; transform: translateX(-50%); }
+        #toast.show { visibility: visible; animation: fadein 0.5s, fadeout 0.5s 2.5s; }
+        @keyframes fadein { from {bottom: 0; opacity: 0;} to {bottom: 30px; opacity: 1;} }
+        @keyframes fadeout { from {bottom: 30px; opacity: 1;} to {bottom: 0; opacity: 0;} }
+    </style>
+</head>
+<body>
+
+<div id="toast">Correct! +5 Points</div>
+
+<div class="progress-bar">
+    <div class="score-box"><div class="score-num" id="totalScore">0</div><div style="font-size:10px; color:#888;">POINTS</div></div>
+</div>
+
+<div class="nav-bar">
+    <button class="nav-btn active" id="btnPast" onclick="showPage('past')">Past</button>
+    <button class="nav-btn" id="btnPresent" onclick="showPage('present')">Present</button>
+    <button class="nav-btn" id="btnPossess" onclick="showPage('possess')">Pronouns</button>
+    <button class="nav-btn lesson" id="btnDefinite" onclick="showPage('definite')">L1: Al-</button>
+    <button class="nav-btn lesson" id="btnFaail" onclick="showPage('faail')">L2: Faa'il</button>
+    <button class="nav-btn" onclick="document.body.classList.toggle('dark')">🌓</button>
+</div>
+
+<div class="app-card">
+    <div id="quizBox" class="quiz-prompt">Build: <span id="targetSentence">...</span></div>
+
+    <div id="pastPage">
+        <h2>Past Tense</h2>
+        <div class="dropdown-row">
+            <select id="pastVerb" onchange="conjugatePast()">
+                <option value="">Select Action</option>
+                <option value="كَتَبَ" data-root="كَتَب" data-tl="katab" data-t="wrote">كَتَبَ (to write)</option>
+                <option value="دَرَسَ" data-root="دَرَس" data-tl="daras" data-t="studied">دَرَسَ (to study)</option>
+                <option value="شَرِبَ" data-root="شَرِب" data-tl="sharab" data-t="drank">شَرِبَ (to drink)</option>
+                <option value="أَكَلَ" data-root="أَكَل" data-tl="akal" data-t="ate">أَكَلَ (to eat)</option>
+                <option value="فَتَحَ" data-root="فَتَح" data-tl="fatah" data-t="opened">فَتَحَ (to open)</option>
+            </select>
+            <select id="pastSuffix" onchange="conjugatePast()">
+                <option value="">Who?</option>
+                <option value="تُ" data-tl="tu" data-t="I">تُ (I)</option>
+                <option value="نَا" data-tl="naa" data-t="We">نَا (We)</option>
+                <option value="تَ" data-tl="ta" data-t="You (m)">تَ (You)</option>
+            </select>
+        </div>
+        <div id="pastResult" class="result-container">---</div>
+        <div id="pastTranslit" class="translit-container"></div>
+        <div id="pastMeaning" class="translation-container"></div>
+    </div>
+
+    <div id="presentPage" class="hidden">
+        <h2>Present Tense</h2>
+        <div class="dropdown-row">
+            <select id="presPerson" onchange="conjugatePres()">
+                <option value="">Prefix</option>
+                <option value="أَ" data-tl="a" data-t="I am">أَ (I)</option>
+                <option value="يَ" data-tl="ya" data-t="He is">يَ (He)</option>
+                <option value="تَ" data-tl="ta" data-t="You are">تَ (You)</option>
+            </select>
+            <select id="presVerb" onchange="conjugatePres()">
+                <option value="كْتُبُ" data-tl="ktubu" data-t="writing">كْتُبُ</option>
+                <option value="دْرُسُ" data-tl="drusu" data-t="studying">دْرُسُ</option>
+                <option value="شْرَبُ" data-tl="shrabu" data-t="drinking">شْرَبُ</option>
+                <option value="كُلُ" data-tl="kulu" data-t="eating">كُلُ</option>
+            </select>
+        </div>
+        <div id="presResult" class="result-container">---</div>
+        <div id="presTranslit" class="translit-container"></div>
+        <div id="presMeaning" class="translation-container"></div>
+    </div>
+
+    <div id="possessPage" class="hidden">
+        <h2>Pronoun Attachments</h2>
+        <div class="dropdown-row">
+            <select id="possNoun" class="noun-list" onchange="conjugatePoss()">
+                </select>
+            <select id="possSuffix" onchange="conjugatePoss()">
+                <option value="">Owner?</option>
+                <option value="ِي" data-tl="ii" data-t="My">ِي (My)</option>
+                <option value="ُه" data-tl="hu" data-t="His">ُه (His)</option>
+                <option value="ُهَا" data-tl="haa" data-t="Her">ُهَا (Her)</option>
+                <option value="ُنَا" data-tl="naa" data-t="Our">ُنَا (Our)</option>
+            </select>
+        </div>
+        <div id="possResult" class="result-container">---</div>
+        <div id="possTranslit" class="translit-container"></div>
+        <div id="possMeaning" class="translation-container"></div>
+    </div>
+
+    <div id="definitePage" class="hidden">
+        <h2>Lesson 1: The vs A</h2>
+        <div class="info-box">Adding <strong>Al- (الـ)</strong> makes a noun definite ("The"). Adding <strong>-un (ٌ)</strong> makes it "A".</div>
+        <div class="dropdown-row">
+            <select id="defState" onchange="updateDefinite()">
+                <option value="">State</option>
+                <option value="indef" data-t="A">A...</option>
+                <option value="def" data-t="The">The...</option>
+            </select>
+            <select id="defNoun" class="noun-list" onchange="updateDefinite()">
+                </select>
+        </div>
+        <div id="defResult" class="result-container">---</div>
+        <div id="defTranslit" class="translit-container"></div>
+        <div id="defMean" class="translation-container"></div>
+    </div>
+
+    <div id="faailPage" class="hidden">
+        <h2>Lesson 2: The Doer Pattern (Fā'il)</h2>
+        <div class="info-box">The pattern <strong>Fā'il</strong> turns an action into a person (e.g., Write → Writer).</div>
+        <div class="dropdown-row">
+            <select id="faVerb" onchange="updateFaail()">
+                <option value="">Root Verb</option>
+                <option value="K-T-B" data-r1="ك" data-r2="ت" data-r3="ب" data-tl1="K" data-tl2="t" data-tl3="b" data-t="Writer">كَتَبَ (to write)</option>
+                <option value="S-B-H" data-r1="س" data-r2="ب" data-r3="ح" data-tl1="S" data-tl2="b" data-tl3="h" data-t="Swimmer">سَبَحَ (to swim)</option>
+                <option value="D-R-S" data-r1="د" data-r2="ر" data-r3="س" data-tl1="D" data-tl2="r" data-tl3="s" data-t="Student">دَرَسَ (to study)</option>
+                <option value="F-T-H" data-r1="ف" data-r2="ت" data-r3="ح" data-tl1="F" data-tl2="t" data-tl3="h" data-t="Opener">فَتَحَ (to open)</option>
+                <option value="L-B-S" data-r1="ل" data-r2="ب" data-r3="س" data-tl1="L" data-tl2="b" data-tl3="s" data-t="Wearer">لَبِسَ (to wear)</option>
+            </select>
+        </div>
+        <div id="faResult" class="result-container">---</div>
+        <div id="faTranslit" class="translit-container"></div>
+        <div id="faMean" class="translation-container"></div>
+    </div>
+
+    <button class="nav-btn" style="background:#9b59b6; margin-top:20px; width:100%;" onclick="startQuiz()">Start Quiz</button>
+</div>
+
+<script>
+    const nouns = [
+        {ar: "كِتَاب", tl: "kitaab", t: "Book"},
+        {ar: "قَلَم", tl: "qalam", t: "Pen"},
+        {ar: "بَيْت", tl: "bayt", t: "House"},
+        {ar: "سَيَّارَة", tl: "sayyaara", t: "Car"},
+        {ar: "مُعَلِّم", tl: "mu'allim", t: "Teacher"},
+        {ar: "طَاوِلَة", tl: "taawila", t: "Table"},
+        {ar: "مَكْتَب", tl: "maktab", t: "Office/Desk"}
+    ];
+
+    function initNouns() {
+        const lists = document.querySelectorAll('.noun-list');
+        lists.forEach(select => {
+            select.innerHTML = '<option value="">Select Noun</option>';
+            nouns.forEach(n => {
+                let opt = document.createElement('option');
+                opt.value = n.ar;
+                opt.setAttribute('data-tl', n.tl);
+                opt.setAttribute('data-t', n.t);
+                opt.innerText = `${n.ar} (${n.t})`;
+                select.appendChild(opt);
+            });
+        });
+    }
+    initNouns();
+
+    let scores = 0, currentPage = 'past', quizActive = false, targetGoal = "";
+
+    function showPage(p) {
+        currentPage = p; quizActive = false;
+        document.getElementById('quizBox').style.display = 'none';
+        ['past', 'present', 'possess', 'definite', 'faail'].forEach(id => {
+            document.getElementById(id + 'Page').classList.add('hidden');
+            document.getElementById('btn' + id.charAt(0).toUpperCase() + id.slice(1)).classList.remove('active');
+        });
+        document.getElementById(p + 'Page').classList.remove('hidden');
+        document.getElementById('btn' + p.charAt(0).toUpperCase() + p.slice(1)).classList.add('active');
+    }
+
+    function checkAnswer(current) {
+        if(!quizActive) return;
+        if(current.trim().toLowerCase() === targetGoal.trim().toLowerCase()) {
+            scores += 5; document.getElementById('totalScore').innerText = scores;
+            const t = document.getElementById("toast"); t.className = "show"; 
+            setTimeout(() => t.className = "", 2000); quizActive = false;
+            document.getElementById('quizBox').style.display = 'none';
+        }
+    }
+
+    function startQuiz() {
+        quizActive = true;
+        const pageEl = document.getElementById(currentPage + 'Page');
+        const selects = pageEl.querySelectorAll('select');
+        const rands = Array.from(selects).map(s => s.options[Math.floor(Math.random() * (s.options.length - 1)) + 1]);
+        
+        if(currentPage === 'past') targetGoal = `${rands[1].getAttribute('data-t')} ${rands[0].getAttribute('data-t')}`;
+        else if(currentPage === 'present') targetGoal = `${rands[0].getAttribute('data-t')} ${rands[1].getAttribute('data-t')}`;
+        else if(currentPage === 'possess') targetGoal = `${rands[1].getAttribute('data-t')} ${rands[0].getAttribute('data-t')}`;
+        else if(currentPage === 'definite') targetGoal = `${rands[0].getAttribute('data-t')} ${rands[1].getAttribute('data-t')}`;
+        else if(currentPage === 'faail') targetGoal = rands[0].getAttribute('data-t');
+
+        document.getElementById('targetSentence').innerText = targetGoal;
+        document.getElementById('quizBox').style.display = 'block';
+    }
+
+    function conjugatePast() {
+        const v = document.getElementById('pastVerb'), s = document.getElementById('pastSuffix'), optV = v.options[v.selectedIndex], optS = s.options[s.selectedIndex];
+        if (!s.value || !v.value) return;
+        document.getElementById('pastResult').innerHTML = `<span class="color-blue">${optV.getAttribute('data-root')}</span><span class="color-red">${s.value}</span>`;
+        document.getElementById('pastTranslit').innerHTML = `<span class="color-blue">${optV.getAttribute('data-tl')}</span><span class="color-red">${optS.getAttribute('data-tl')}</span>`;
+        document.getElementById('pastMeaning').innerHTML = `<span class="color-red">${optS.getAttribute('data-t')}</span> <span class="color-blue">${optV.getAttribute('data-t')}</span>`;
+        checkAnswer(`${optS.getAttribute('data-t')} ${optV.getAttribute('data-t')}`);
+    }
+
+    function conjugatePres() {
+        const p = document.getElementById('presPerson'), v = document.getElementById('presVerb'), optP = p.options[p.selectedIndex], optV = v.options[v.selectedIndex];
+        if (!p.value || !v.value) return;
+        document.getElementById('presResult').innerHTML = `<span class="color-red">${p.value}</span><span class="color-blue">${v.value}</span>`;
+        document.getElementById('presTranslit').innerHTML = `<span class="color-red">${optP.getAttribute('data-tl')}</span><span class="color-blue">${optV.getAttribute('data-tl')}</span>`;
+        document.getElementById('presMeaning').innerHTML = `<span class="color-red">${optP.getAttribute('data-t')}</span> <span class="color-blue">${optV.getAttribute('data-t')}</span>`;
+        checkAnswer(`${optP.getAttribute('data-t')} ${optV.getAttribute('data-t')}`);
+    }
+
+    function conjugatePoss() {
+        const n = document.getElementById('possNoun'), s = document.getElementById('possSuffix'), optN = n.options[n.selectedIndex], optS = s.options[s.selectedIndex];
+        if (!s.value || !n.value) return;
+        let nV = n.value; 
+        if(nV.endsWith('ة')) nV = nV.slice(0,-1) + 'ت'; // Merge Ta Marbuta without separate color
+        document.getElementById('possResult').innerHTML = `<span class="color-blue">${nV}</span><span class="color-purple">${s.value}</span>`;
+        document.getElementById('possTranslit').innerHTML = `<span class="color-blue">${optN.getAttribute('data-tl')}</span><span class="color-purple">${optS.getAttribute('data-tl')}</span>`;
+        document.getElementById('possMeaning').innerHTML = `<span class="color-purple">${optS.getAttribute('data-t')}</span> <span class="color-blue">${optN.getAttribute('data-t')}</span>`;
+        checkAnswer(`${optS.getAttribute('data-t')} ${optN.getAttribute('data-t')}`);
+    }
+
+    function updateDefinite() {
+        const st = document.getElementById('defState'), n = document.getElementById('defNoun'), optS = st.options[st.selectedIndex], optN = n.options[n.selectedIndex];
+        if(!st.value || !n.value) return;
+        if(st.value === 'indef') {
+            document.getElementById('defResult').innerHTML = `<span class="color-blue">${n.value}</span><span class="color-red">ٌ</span>`;
+            document.getElementById('defTranslit').innerHTML = `<span class="color-blue">${optN.getAttribute('data-tl')}</span><span class="color-red">un</span>`;
+            document.getElementById('defMean').innerHTML = `<span class="color-red">A</span> <span class="color-blue">${optN.getAttribute('data-t')}</span>`;
+            checkAnswer(`A ${optN.getAttribute('data-t')}`);
+        } else {
+            document.getElementById('defResult').innerHTML = `<span class="color-gold">الـ</span><span class="color-blue">${n.value}</span><span class="color-red">ُ</span>`;
+            document.getElementById('defTranslit').innerHTML = `<span class="color-gold">Al-</span><span class="color-blue">${optN.getAttribute('data-tl')}</span><span class="color-red">u</span>`;
+            document.getElementById('defMean').innerHTML = `<span class="color-gold">The</span> <span class="color-blue">${optN.getAttribute('data-t')}</span>`;
+            checkAnswer(`The ${optN.getAttribute('data-t')}`);
+        }
+    }
+
+    function updateFaail() {
+        const v = document.getElementById('faVerb'), opt = v.options[v.selectedIndex];
+        if(!v.value) return;
+        // Fix transliteration and coloring logic
+        const r1 = opt.getAttribute('data-r1'), r2 = opt.getAttribute('data-r2'), r3 = opt.getAttribute('data-r3');
+        const tl1 = opt.getAttribute('data-tl1'), tl2 = opt.getAttribute('data-tl2'), tl3 = opt.getAttribute('data-tl3');
+        
+        document.getElementById('faResult').innerHTML = `<span class="color-blue">${r1}</span><span class="color-gold">ا</span><span class="color-blue">${r2}</span><span class="color-red">ِ</span><span class="color-blue">${r3}</span>`;
+        document.getElementById('faTranslit').innerHTML = `<span class="color-blue">${tl1}</span><span class="color-gold">aa</span><span class="color-blue">${tl2}</span><span class="color-red">i</span><span class="color-blue">${tl3}</span>`;
+        document.getElementById('faMean').innerHTML = `<span class="color-gold">${opt.getAttribute('data-t')}</span>`;
+        checkAnswer(opt.getAttribute('data-t'));
+    }
+</script>
+</body>
+</html>
